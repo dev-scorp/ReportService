@@ -1,0 +1,11 @@
+﻿INSERT INTO public.deps(id, name, active) VALUES (1, 'ФинОтдел', true);
+INSERT INTO public.deps(id, name, active) VALUES (2, 'Бухгалтерия', true);
+INSERT INTO public.deps(id, name, active) VALUES (3, 'ИТ', true);
+INSERT INTO public.deps(id, name, active) VALUES (4, 'ЮрОтдел', true);
+INSERT INTO public.deps(id, name, active) VALUES (5, 'Отдел кадров', true);
+
+INSERT INTO public.emps(name, inn, departmentid) VALUES ('Андрей Сергеевич Бубнов', '12121212121', 1);
+INSERT INTO public.emps(name, inn, departmentid) VALUES ('Григорий Евсеевич Зиновьев', '12121212121', 1);
+INSERT INTO public.emps(name, inn, departmentid) VALUES ('Яков Михайлович Свердлов', '12121212121', 1);
+INSERT INTO public.emps(name, inn, departmentid) VALUES ('Василий Васильевич Кузнецов', '12121212121', 2);
+

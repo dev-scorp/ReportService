@@ -1,0 +1,26 @@
+﻿CREATE TABLE public.deps
+(
+  name character(100),
+  id integer NOT NULL,
+  CONSTRAINT pk_deps__id PRIMARY KEY (id)
+)
+WITH (
+  OIDS=FALSE
+);
+ALTER TABLE public.deps
+  OWNER TO postgres;
+
+CREATE TABLE public.emps
+(
+  name character(100),
+  inn character(12),
+  departmentid integer,
+  CONSTRAINT fk_deps__id___emps__departmenid FOREIGN KEY (departmentid)
+      REFERENCES public.deps (id) MATCH SIMPLE
+      ON UPDATE NO ACTION ON DELETE NO ACTION
+)
+WITH (
+  OIDS=FALSE
+);
+ALTER TABLE public.emps
+  OWNER TO postgres;

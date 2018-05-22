@@ -18,6 +18,8 @@ namespace ReportService.Domain
         public Action<Employee, Report> WE = (e, s) => s.S = s.S + e.Name;
         public Action<Employee, Report> WS = (e, s) => s.S = s.S + e.Salary + "р";
         public Action<Employee, Report> WD = (e, s) => s.S = s.S + e.Department;
+        public Action<Employee, Report> WTD = (e, s) => s.S = s.S + "Всего по отделу " + e.TotalByDepartment + "р";
+        public Action<Employee, Report> WTA = (e, s) => s.S = s.S + "Всего по предприятию " + e.TotalAll + "р";
         public Employee Employee { get; }
     }
 }

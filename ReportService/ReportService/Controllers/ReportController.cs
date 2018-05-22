@@ -1,9 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Globalization;
-using System.IO;
 using System.Linq;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Npgsql;
 using ReportService.Domain;
@@ -20,8 +17,10 @@ namespace ReportService.Controllers
             var actions = new List<(Action<Employee, Report>, Employee)>();
             var deps = new Dictionary<string, List<Employee>>();
 
-            var report = new Report() { S = MonthNameResolver.MonthName.GetName(year, month) };
-            var connString = "Host=192.168.99.100;Username=postgres;Password=1;Database=employee";           
+            var report = new Report() {
+                S = MonthNameResolver.MonthName.GetName(year, month) + " " + year
+            };
+            var connString = "Host=192.168.99.100;Username=postgres;Password=1;Database=employee";                       
 
             var conn = new NpgsqlConnection(connString);
             conn.Open();
@@ -44,7 +43,7 @@ namespace ReportService.Controllers
                 {
                     Name = reader.GetString(0),
                     Inn = reader.GetString(1),
-                    Department = reader.GetString(2)
+                    Department = depName
                 };
                 emp.BuhCode = EmpCodeResolver.GetCode(emp.Inn).Result;
                 emp.Salary = emp.Salary();
@@ -52,33 +51,45 @@ namespace ReportService.Controllers
             }
             conn.Close();
 
+            var totalAll = 0;
             foreach (var dep in deps)
             {
                 var depName = dep.Key;
                 actions.Add((new ReportFormatter(null).NL, new Employee()));
                 actions.Add((new ReportFormatter(null).WL, new Employee()));
-                actions.Add((new ReportFormatter(null).NL, new Employee()));
+                actions.Add((new ReportFormatter(null).NL, new Employee()));                
                 actions.Add((new ReportFormatter(null).WD, new Employee() { Department = depName }));
+                actions.Add((new ReportFormatter(null).NL, null));
 
                 var empDeplist = dep.Value;
-                for (int i = 1; i < empDeplist.Count(); i++)
+                var totalByDepartment = 0;
+                for (int i = 0; i < empDeplist.Count(); i++)
                 {
                     actions.Add((new ReportFormatter(empDeplist[i]).NL, empDeplist[i]));
                     actions.Add((new ReportFormatter(empDeplist[i]).WE, empDeplist[i]));
                     actions.Add((new ReportFormatter(empDeplist[i]).WT, empDeplist[i]));
                     actions.Add((new ReportFormatter(empDeplist[i]).WS, empDeplist[i]));
+                    totalByDepartment += empDeplist[i].Salary;
                 }
 
+                totalAll += totalByDepartment;
+                actions.Add((new ReportFormatter(null).NL, null));
+                actions.Add((new ReportFormatter(null).NL, null));
+                actions.Add((new ReportFormatter(null).WTD, new Employee() { TotalByDepartment = totalByDepartment }));
+                                
                 actions.Add((new ReportFormatter(null).NL, null));
                 actions.Add((new ReportFormatter(null).WL, null));
             }
+            actions.Add((new ReportFormatter(null).NL, null));
+            actions.Add((new ReportFormatter(null).NL, null));
+            actions.Add((new ReportFormatter(null).WTA, new Employee() { TotalAll = totalAll }));
 
             foreach (var act in actions)
             {
                 act.Item1(act.Item2, report);
             }
             report.Save();
-            var file = System.IO.File.ReadAllBytes("D:\\report.txt");
+            var file = report.ReadFile();
             var response = File(file, "application/octet-stream", "report.txt");
             return response;
         }

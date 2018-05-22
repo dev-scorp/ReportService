@@ -12,5 +12,7 @@ namespace ReportService.Domain
         public string  Inn { get; set; }
         public int Salary { get; set; }
         public string BuhCode { get; set; }
+        public int TotalByDepartment { get; set; }
+        public int TotalAll { get; set; }
     }
 }
