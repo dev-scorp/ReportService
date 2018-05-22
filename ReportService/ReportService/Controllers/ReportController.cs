@@ -18,47 +18,60 @@ namespace ReportService.Controllers
         public IActionResult Download(int year, int month)
         {
             var actions = new List<(Action<Employee, Report>, Employee)>();
+            var deps = new Dictionary<string, List<Employee>>();
+
             var report = new Report() { S = MonthNameResolver.MonthName.GetName(year, month) };
-            var connString = "Host=192.168.99.100;Username=postgres;Password=1;Database=employee";
-            
+            var connString = "Host=192.168.99.100;Username=postgres;Password=1;Database=employee";           
 
             var conn = new NpgsqlConnection(connString);
             conn.Open();
-            var cmd = new NpgsqlCommand("SELECT d.name from deps d where d.active = true", conn);
+            var cmd = new NpgsqlCommand(@"SELECT e.name, e.inn, d.name
+                                          from emps e
+                                          left join deps d on e.departmentid = d.id
+                                          where d.active = true 
+                                            and e.departmentid is not null 
+                                        ", conn);
             var reader = cmd.ExecuteReader();
             while (reader.Read())
             {
-                List<Employee> emplist = new List<Employee>();
-                var depName = reader.GetString(0);
-                var conn1 = new NpgsqlConnection(connString);
-                conn1.Open();
-                var cmd1 = new NpgsqlCommand("SELECT e.name, e.inn, d.name from emps e left join deps d on e.departmentid = d.id", conn1);
-                var reader1 = cmd1.ExecuteReader();
-                while (reader1.Read())
+                var depName = reader.GetString(2);
+                if (!deps.ContainsKey(depName))
                 {
-                    var emp = new Employee() { Name = reader1.GetString(0), Inn = reader1.GetString(1), Department = reader1.GetString(2) };
-                    emp.BuhCode = EmpCodeResolver.GetCode(emp.Inn).Result;
-                    emp.Salary = emp.Salary();
-                    if (emp.Department != depName)
-                        continue;
-                    emplist.Add(emp);
-                }
+                    deps[depName] = new List<Employee>();
+                };
 
+                var emp = new Employee()
+                {
+                    Name = reader.GetString(0),
+                    Inn = reader.GetString(1),
+                    Department = reader.GetString(2)
+                };
+                emp.BuhCode = EmpCodeResolver.GetCode(emp.Inn).Result;
+                emp.Salary = emp.Salary();
+                deps[depName].Add(emp);
+            }
+            conn.Close();
+
+            foreach (var dep in deps)
+            {
+                var depName = dep.Key;
                 actions.Add((new ReportFormatter(null).NL, new Employee()));
                 actions.Add((new ReportFormatter(null).WL, new Employee()));
                 actions.Add((new ReportFormatter(null).NL, new Employee()));
-                actions.Add((new ReportFormatter(null).WD, new Employee() { Department = depName } ));
-                for (int i = 1; i < emplist.Count(); i ++)
-                {
-                    actions.Add((new ReportFormatter(emplist[i]).NL, emplist[i]));
-                    actions.Add((new ReportFormatter(emplist[i]).WE, emplist[i]));
-                    actions.Add((new ReportFormatter(emplist[i]).WT, emplist[i]));
-                    actions.Add((new ReportFormatter(emplist[i]).WS, emplist[i]));
-                }  
+                actions.Add((new ReportFormatter(null).WD, new Employee() { Department = depName }));
 
+                var empDeplist = dep.Value;
+                for (int i = 1; i < empDeplist.Count(); i++)
+                {
+                    actions.Add((new ReportFormatter(empDeplist[i]).NL, empDeplist[i]));
+                    actions.Add((new ReportFormatter(empDeplist[i]).WE, empDeplist[i]));
+                    actions.Add((new ReportFormatter(empDeplist[i]).WT, empDeplist[i]));
+                    actions.Add((new ReportFormatter(empDeplist[i]).WS, empDeplist[i]));
+                }
+
+                actions.Add((new ReportFormatter(null).NL, null));
+                actions.Add((new ReportFormatter(null).WL, null));
             }
-            actions.Add((new ReportFormatter(null).NL, null));
-            actions.Add((new ReportFormatter(null).WL, null));
 
             foreach (var act in actions)
             {
